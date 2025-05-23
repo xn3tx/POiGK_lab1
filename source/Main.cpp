@@ -1,4 +1,4 @@
-﻿#include <vector>
+#include <vector>
 #include <algorithm>
 #include <functional> 
 #include <memory>
@@ -28,7 +28,7 @@ struct Physics {
 };
 
 struct Renderable {
-	enum Size { SMALL = 1, MEDIUM = 2, LARGE = 4 } size = SMALL;
+	enum Size { SMALL = 1, MEDIUM = 2, LARGE = 4, VERYLARGE = 8 } size = SMALL;   //rozmiary przeszkód
 };
 
 // --- RENDERER ---
@@ -47,8 +47,13 @@ public:
 	}
 
 	void Begin() {
-		BeginDrawing();
-		ClearBackground(BLACK);
+    BeginDrawing();
+    float time = GetTime();
+    float periodDuration = 10.0f;
+    float t = fmodf(time, periodDuration) / periodDuration; 
+    float hue = 210.0f + t * (270.0f - 210.0f);
+    Color bg = ColorFromHSV(hue, 0.6f, 0.2f);
+    ClearBackground(bg);
 	}
 
 	void End() {
@@ -109,10 +114,29 @@ public:
 		return static_cast<int>(render.size);
 	}
 
+	int HP() const {
+		switch (render.size) {
+			case Renderable::SMALL: return 10;
+			case Renderable::MEDIUM: return 50;
+			case Renderable::LARGE: return 200;
+			case Renderable::VERYLARGE: return 500;
+			default: return 1;
+		}
+	}
+
+	bool Damaged() const {
+		return hp <= 0;
+	}
+
+
+	void TakeDamage(int dmg) {
+		hp -= dmg;
+	}
+
 protected:
 	void init(int screenW, int screenH) {
 		// Choose size
-		render.size = static_cast<Renderable::Size>(1 << GetRandomValue(0, 2));
+		//render.size = static_cast<Renderable::Size>(1 << GetRandomValue(0, 3));
 
 		// Spawn at random edge
 		switch (GetRandomValue(0, 3)) {
@@ -151,6 +175,7 @@ protected:
 	Renderable render;
 
 	int baseDamage = 0;
+	int hp;
 	static constexpr float LIFE = 10.f;
 	static constexpr float SPEED_MIN = 125.f;
 	static constexpr float SPEED_MAX = 250.f;
@@ -160,28 +185,48 @@ protected:
 
 class TriangleAsteroid : public Asteroid {
 public:
-	TriangleAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 5; }
+	TriangleAsteroid(int w, int h) : Asteroid(w, h) { 
+		baseDamage = 5;
+	    render.size = Renderable::SMALL;
+		hp = HP();
+	}
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 3, GetRadius(), transform.rotation);
 	}
 };
 class SquareAsteroid : public Asteroid {
 public:
-	SquareAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 10; }
+	SquareAsteroid(int w, int h) : Asteroid(w, h) {
+		baseDamage = 10; 
+		render.size = Renderable::MEDIUM;
+		hp = HP();}
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 4, GetRadius(), transform.rotation);
 	}
 };
 class PentagonAsteroid : public Asteroid {
 public:
-	PentagonAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 15; }
+	PentagonAsteroid(int w, int h) : Asteroid(w, h) {
+		baseDamage = 15; 
+		render.size = Renderable::LARGE;
+		hp = HP();}
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 5, GetRadius(), transform.rotation);
 	}
 };
+class VeryLargeAsteroid : public Asteroid {
+public:
+	VeryLargeAsteroid(int w, int h) : Asteroid(w, h) {
+		baseDamage = 10; 
+		render.size = Renderable::VERYLARGE;
+		hp = HP();}
+	void Draw() const override {
+		Renderer::Instance().DrawPoly(transform.position, 8, GetRadius(), transform.rotation);
+	}
+};
 
 // Shape selector
-enum class AsteroidShape { TRIANGLE = 3, SQUARE = 4, PENTAGON = 5, RANDOM = 0 };
+enum class AsteroidShape { TRIANGLE = 3, SQUARE = 4, PENTAGON = 5, VERYLARGE = 6, RANDOM = 0 };
 
 // Factory
 static inline std::unique_ptr<Asteroid> MakeAsteroid(int w, int h, AsteroidShape shape) {
@@ -192,11 +237,80 @@ static inline std::unique_ptr<Asteroid> MakeAsteroid(int w, int h, AsteroidShape
 		return std::make_unique<SquareAsteroid>(w, h);
 	case AsteroidShape::PENTAGON:
 		return std::make_unique<PentagonAsteroid>(w, h);
+	case AsteroidShape::VERYLARGE:
+		return std::make_unique<VeryLargeAsteroid>(w, h);
 	default: {
-		return MakeAsteroid(w, h, static_cast<AsteroidShape>(3 + GetRandomValue(0, 2)));
+		int Shape = GetRandomValue(0, 99);
+		if (Shape < 40) {
+			return MakeAsteroid(w, h, AsteroidShape::TRIANGLE);
+		}
+		else if (Shape < 70) {
+			return MakeAsteroid(w, h, AsteroidShape::SQUARE);
+		}
+		else if (Shape < 90) {
+			return MakeAsteroid(w, h, AsteroidShape::PENTAGON);
+		}
+		else {
+			return MakeAsteroid(w, h, AsteroidShape::VERYLARGE);
+		}
 	}
 	}
 }
+
+class Bonus {
+public:
+    Bonus(int screenW, int screenH) {
+    float angle = Utils::RandomFloat(50.f, 100.f);
+	float speed = Utils::RandomFloat(100.f, 200.f);
+
+    switch (GetRandomValue(0, 3)) {
+    case 0: // Góra
+        position = { Utils::RandomFloat(0, screenW), -radius };
+        angle = Utils::RandomFloat(PI / 6, 5 * PI / 6); // 30° to 150°
+        break;
+    case 1: // Prawa
+        position = { screenW + radius, Utils::RandomFloat(0, screenH) };
+        angle = Utils::RandomFloat(2 * PI / 3, 4 * PI / 3); // 120° to 240°
+        break;
+    case 2: // Dół
+        position = { Utils::RandomFloat(0, screenW), screenH + radius };
+        angle = Utils::RandomFloat(7 * PI / 6, 11 * PI / 6); // 210° to 330°
+        break;
+    default: // Lewa
+        position = { -radius, Utils::RandomFloat(0, screenH) };
+        angle = Utils::RandomFloat(-PI / 3, PI / 3); // -60° to 60°
+        break;
+    }
+
+    velocity = { cosf(angle) * speed, sinf(angle) * speed };
+	}
+
+    bool Update(float dt, int screenW, int screenH) {
+        position = Vector2Add(position, Vector2Scale(velocity, dt));
+
+        if (position.x < -radius || position.x > screenW + radius ||
+            position.y < -radius || position.y > screenH + radius) {
+            return false;
+        }
+        return true;
+    }
+
+   void Draw() const {
+    DrawCircleV(position, radius, GOLD);
+    }
+
+    Vector2 GetPosition() const { return position; }
+    float GetRadius() const { return radius; }
+
+private:
+    Vector2 position;
+    Vector2 velocity;
+    float radius = 25.f;
+};
+
+
+
+
 
 // --- PROJECTILE HIERARCHY ---
 enum class WeaponType { LASER, BULLET, COUNT };
@@ -302,7 +416,10 @@ public:
 	virtual float GetRadius() const = 0;
 
 	int GetHP() const {
-		return hp;
+		if (hp>0){
+			return hp;
+		}
+		else return 0;
 	}
 
 	float GetFireRate(WeaponType wt) const {
@@ -373,7 +490,6 @@ public:
 		static Application inst;
 		return inst;
 	}
-
 	void Run() {
 		srand(static_cast<unsigned>(time(nullptr)));
 		Renderer::Instance().Init(C_WIDTH, C_HEIGHT, "Asteroids OOP");
@@ -413,6 +529,9 @@ public:
 			if (IsKeyPressed(KEY_FOUR)) {
 				currentShape = AsteroidShape::RANDOM;
 			}
+			if (IsKeyPressed(KEY_FIVE)) {
+				currentShape = AsteroidShape::VERYLARGE;
+			}
 
 			// Weapon switch
 			if (IsKeyPressed(KEY_TAB)) {
@@ -448,6 +567,15 @@ public:
 				spawnTimer = 0.f;
 				spawnInterval = Utils::RandomFloat(C_SPAWN_MIN, C_SPAWN_MAX);
 			}
+            
+			bonusSpawnTimer += dt;
+			if (bonusSpawnTimer >= bonusSpawnInterval) {
+    			// Random spawn bonus 
+    			if (GetRandomValue(0, 99) < 50) {
+        			bonuses.emplace_back(C_WIDTH, C_HEIGHT);
+    			}
+    			bonusSpawnTimer = 0.f;
+			}
 
 			// Update projectiles - check if in boundries and move them forward
 			{
@@ -465,6 +593,18 @@ public:
 				for (auto ait = asteroids.begin(); ait != asteroids.end(); ++ait) {
 					float dist = Vector2Distance((*pit).GetPosition(), (*ait)->GetPosition());
 					if (dist < (*pit).GetRadius() + (*ait)->GetRadius()) {
+						switch ((*ait)->GetSize()) {
+                		    case Renderable::SMALL:
+                   				score += 2; break;
+                			case Renderable::MEDIUM:
+                    			score += 4; break;
+                			case Renderable::LARGE:
+                    			score += 8; break;
+                			case Renderable::VERYLARGE:
+                    			score += 10; break;
+                			default:
+                    			break;
+            			}
 						ait = asteroids.erase(ait);
 						pit = projectiles.erase(pit);
 						removed = true;
@@ -497,6 +637,24 @@ public:
 				asteroids.erase(asteroid_to_remove, asteroids.end());
 			}
 
+
+			{
+    			auto bonus_to_remove = std::remove_if(bonuses.begin(), bonuses.end(),
+        			[&](Bonus& bonus) {
+            			if (!player->IsAlive()) return false;
+            			if (!bonus.Update(dt, C_WIDTH, C_HEIGHT)) return true;
+
+            			float dist = Vector2Distance(player->GetPosition(), bonus.GetPosition());
+            			if (dist < player->GetRadius() + bonus.GetRadius()) {
+                		player->TakeDamage(-10); // Dodaj 10 HP (ujemne obrażenia = leczenie)
+                			return true; // usuwamy bonus
+            			}
+            			return false;
+        			});
+    			bonuses.erase(bonus_to_remove, bonuses.end());
+			}
+
+
 			// Render everything
 			{
 				Renderer::Instance().Begin();
@@ -514,8 +672,17 @@ public:
 				for (const auto& astPtr : asteroids) {
 					astPtr->Draw();
 				}
-
+                DrawText(TextFormat("Score: %d", score), 10, 70, 20, YELLOW);
+				for (const auto& bonus : bonuses) {
+    				bonus.Draw();
+				}
 				player->Draw();
+
+				if (!player->IsAlive()) {
+    			DrawText("GAME OVER", C_WIDTH / 2 - MeasureText("GAME OVER", 60) / 2, C_HEIGHT / 2 - 30, 60, RED);
+				DrawText(TextFormat("Final Score: %d", score), C_WIDTH / 2 - MeasureText(TextFormat("Final Score: %d", score), 30) / 2, C_HEIGHT / 2 + 30, 30, YELLOW);
+    			DrawText("Press [R] to Restart", C_WIDTH / 2 - MeasureText("Press [R] to Restart", 30) / 2, C_HEIGHT / 2 + 70, 30, WHITE);
+				}
 
 				Renderer::Instance().End();
 			}
@@ -532,8 +699,12 @@ private:
 	std::vector<std::unique_ptr<Asteroid>> asteroids;
 	std::vector<Projectile> projectiles;
 
-	AsteroidShape currentShape = AsteroidShape::TRIANGLE;
+	AsteroidShape currentShape = AsteroidShape::RANDOM;
 
+	int score = 0;
+	std::vector<Bonus> bonuses;
+    float bonusSpawnTimer = 0.f;
+    float bonusSpawnInterval = 5.f;  // Bonus co ~10 sekund
 	static constexpr int C_WIDTH = 1600;
 	static constexpr int C_HEIGHT = 1600;
 	static constexpr size_t MAX_AST = 150;
