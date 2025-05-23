@@ -46,6 +46,7 @@ public:
 		screenH = h;
 	}
 
+	//change the background
 	void Begin() {
     BeginDrawing();
     float time = GetTime();
@@ -128,7 +129,6 @@ public:
 		return hp <= 0;
 	}
 
-
 	void TakeDamage(int dmg) {
 		hp -= dmg;
 	}
@@ -191,6 +191,13 @@ public:
 		hp = HP();
 	}
 	void Draw() const override {
+		float hp_bar_width = 2 * GetRadius() * (float(hp) /HP());
+		float initial_width = 2 * GetRadius();
+		float hp_bar_height = 5.0f;
+    	float x = transform.position.x - GetRadius();
+    	float y = transform.position.y - GetRadius() - 8;
+		DrawRectangle(x, y, initial_width, hp_bar_height, GRAY);  // Background bar
+    	DrawRectangle(x, y, hp_bar_width, hp_bar_height, WHITE);  // Filled bar
 		Renderer::Instance().DrawPoly(transform.position, 3, GetRadius(), transform.rotation);
 	}
 };
@@ -201,6 +208,13 @@ public:
 		render.size = Renderable::MEDIUM;
 		hp = HP();}
 	void Draw() const override {
+		float hp_bar_width = 2 * GetRadius() * (float(hp) /HP());
+		float initial_width = 2 * GetRadius();
+		float hp_bar_height = 5.0f;
+    	float x = transform.position.x - GetRadius();
+    	float y = transform.position.y - GetRadius() - 8;
+		DrawRectangle(x, y, initial_width, hp_bar_height, GRAY);  // Background bar
+    	DrawRectangle(x, y, hp_bar_width, hp_bar_height, BLUE);  // Filled bar
 		Renderer::Instance().DrawPoly(transform.position, 4, GetRadius(), transform.rotation);
 	}
 };
@@ -211,6 +225,13 @@ public:
 		render.size = Renderable::LARGE;
 		hp = HP();}
 	void Draw() const override {
+		float hp_bar_width = 2 * GetRadius() * (float(hp) /HP());
+		float initial_width = 2 * GetRadius();
+		float hp_bar_height = 5.0f;
+    	float x = transform.position.x - GetRadius();
+    	float y = transform.position.y - GetRadius() - 8;
+		DrawRectangle(x, y, initial_width, hp_bar_height, GRAY);  // Background bar
+    	DrawRectangle(x, y, hp_bar_width, hp_bar_height, PURPLE);  // Filled bar
 		Renderer::Instance().DrawPoly(transform.position, 5, GetRadius(), transform.rotation);
 	}
 };
@@ -221,6 +242,13 @@ public:
 		render.size = Renderable::VERYLARGE;
 		hp = HP();}
 	void Draw() const override {
+		float hp_bar_width = 2 * GetRadius() * (float(hp) /HP());
+		float initial_width = 2 * GetRadius();
+		float hp_bar_height = 5.0f;
+    	float x = transform.position.x - GetRadius();
+    	float y = transform.position.y - GetRadius() - 8;
+		DrawRectangle(x, y, initial_width, hp_bar_height, GRAY);  // Background bar
+    	DrawRectangle(x, y, hp_bar_width, hp_bar_height, MAGENTA);  // Filled bar
 		Renderer::Instance().DrawPoly(transform.position, 8, GetRadius(), transform.rotation);
 	}
 };
@@ -244,10 +272,10 @@ static inline std::unique_ptr<Asteroid> MakeAsteroid(int w, int h, AsteroidShape
 		if (Shape < 40) {
 			return MakeAsteroid(w, h, AsteroidShape::TRIANGLE);
 		}
-		else if (Shape < 70) {
+		else if (Shape < 65) {
 			return MakeAsteroid(w, h, AsteroidShape::SQUARE);
 		}
-		else if (Shape < 90) {
+		else if (Shape < 85) {
 			return MakeAsteroid(w, h, AsteroidShape::PENTAGON);
 		}
 		else {
@@ -264,21 +292,21 @@ public:
 	float speed = Utils::RandomFloat(100.f, 200.f);
 
     switch (GetRandomValue(0, 3)) {
-    case 0: // Góra
+    case 0: 
         position = { Utils::RandomFloat(0, screenW), -radius };
-        angle = Utils::RandomFloat(PI / 6, 5 * PI / 6); // 30° to 150°
+        angle = Utils::RandomFloat(PI / 6, 5 * PI / 6); 
         break;
-    case 1: // Prawa
+    case 1: 
         position = { screenW + radius, Utils::RandomFloat(0, screenH) };
-        angle = Utils::RandomFloat(2 * PI / 3, 4 * PI / 3); // 120° to 240°
+        angle = Utils::RandomFloat(2 * PI / 3, 4 * PI / 3); 
         break;
-    case 2: // Dół
+    case 2: 
         position = { Utils::RandomFloat(0, screenW), screenH + radius };
-        angle = Utils::RandomFloat(7 * PI / 6, 11 * PI / 6); // 210° to 330°
+        angle = Utils::RandomFloat(7 * PI / 6, 11 * PI / 6); 
         break;
-    default: // Lewa
+    default: 
         position = { -radius, Utils::RandomFloat(0, screenH) };
-        angle = Utils::RandomFloat(-PI / 3, PI / 3); // -60° to 60°
+        angle = Utils::RandomFloat(-PI / 3, PI / 3); 
         break;
     }
 
@@ -310,8 +338,6 @@ private:
 
 
 
-
-
 // --- PROJECTILE HIERARCHY ---
 enum class WeaponType { LASER, BULLET, COUNT };
 class Projectile {
@@ -325,7 +351,6 @@ public:
 	}
 	bool Update(float dt) {
 		transform.position = Vector2Add(transform.position, Vector2Scale(physics.velocity, dt));
-
 		if (transform.position.x < 0 ||
 			transform.position.x > Renderer::Instance().Width() ||
 			transform.position.y < 0 ||
@@ -444,10 +469,10 @@ protected:
 class PlayerShip :public Ship {
 public:
 	PlayerShip(int w, int h) : Ship(w, h) {
-		texture = LoadTexture("spaceship1.png");
+		texture = LoadTexture("dog.png");
 		GenTextureMipmaps(&texture);                                                        // Generate GPU mipmaps for a texture
 		SetTextureFilter(texture, 2);
-		scale = 0.25f;
+		scale = 0.05f;
 	}
 	~PlayerShip() {
 		UnloadTexture(texture);
@@ -561,7 +586,7 @@ public:
 				}
 			}
 
-			// Spawn asteroids
+			// Spawn asteroids and bonus
 			if (spawnTimer >= spawnInterval && asteroids.size() < MAX_AST) {
 				asteroids.push_back(MakeAsteroid(C_WIDTH, C_HEIGHT, currentShape));
 				spawnTimer = 0.f;
@@ -593,7 +618,11 @@ public:
 				for (auto ait = asteroids.begin(); ait != asteroids.end(); ++ait) {
 					float dist = Vector2Distance((*pit).GetPosition(), (*ait)->GetPosition());
 					if (dist < (*pit).GetRadius() + (*ait)->GetRadius()) {
-						switch ((*ait)->GetSize()) {
+
+						(*ait)->TakeDamage((*pit).GetDamage());
+						if ((*ait)->Damaged()) {
+							ait = asteroids.erase(ait);
+							switch ((*ait)->GetSize()) {
                 		    case Renderable::SMALL:
                    				score += 2; break;
                 			case Renderable::MEDIUM:
@@ -604,8 +633,9 @@ public:
                     			score += 10; break;
                 			default:
                     			break;
-            			}
-						ait = asteroids.erase(ait);
+            				}
+						}
+
 						pit = projectiles.erase(pit);
 						removed = true;
 						break;
