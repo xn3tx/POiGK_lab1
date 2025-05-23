@@ -8,3 +8,4 @@
 * różny czas zestrzelenia asteroidy w zależności od wielkości i pokazany pasek hp przy asteroidach
 * zmiana grafiki na psa
 ## Przykładowy gameplay
+![Gameplay](Gameplay.gif)
