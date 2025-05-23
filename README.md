@@ -5,8 +5,6 @@
 * dodanie zmieniającego się tła gry - odcienie błękitu i fioletu o dość małej jasności
 * dodanie ekranu końcowego po przegranej rozgrywce
 * pojawiające się w losowych miejscach obiekty - złote koła dodające +10 hp dla gracza
-* różny czas zestrzelenia asteroidy w zależności od wielkości
-* zmiana statku
-
-* dodanie podwójnego i potrójnego lasera
+* różny czas zestrzelenia asteroidy w zależności od wielkości i pokazany pasek hp przy asteroidach
+* zmiana grafiki statku
 ## Przykładowy gameplay
